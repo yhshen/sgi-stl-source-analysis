@@ -39,8 +39,17 @@
 
 __STL_BEGIN_NAMESPACE
 
+/*
+ * 隶属concept: Default Constructible, Assignable
+ * */
 struct input_iterator_tag {};
 struct output_iterator_tag {};
+
+/*
+ * Itarator tag classes的继承体系并不重要，它只是一个小小的便利手段。
+ * 产生目的：根据iterator catagory来进行分派，从而使得泛型算法的撰写更加容易
+ * 在此目的之下，由于不需要继承自output_iterator_tag，故省略。
+ * */
 struct forward_iterator_tag : public input_iterator_tag {};
 struct bidirectional_iterator_tag : public forward_iterator_tag {};
 struct random_access_iterator_tag : public bidirectional_iterator_tag {};
@@ -50,6 +59,9 @@ struct random_access_iterator_tag : public bidirectional_iterator_tag {};
 // the C++ standard.  (They have been replaced by struct iterator.)
 // They are included for backward compatibility with the HP STL.
 
+/*
+ * 不属于标准C++的一部分,为了向后兼容
+ * */
 template <class _Tp, class _Distance> struct input_iterator {
   typedef input_iterator_tag iterator_category;
   typedef _Tp                value_type;
@@ -58,6 +70,9 @@ template <class _Tp, class _Distance> struct input_iterator {
   typedef _Tp&               reference;
 };
 
+/*
+ * output_iterator很特殊
+ * */
 struct output_iterator {
   typedef output_iterator_tag iterator_category;
   typedef void                value_type;
@@ -91,6 +106,12 @@ template <class _Tp, class _Distance> struct random_access_iterator {
   typedef _Tp&                       reference;
 };
 
+/*
+ * 基础iterator，我们定义新的iterator时，可以继承于它
+ * 但是，可能会有性能的损失，因为有些编译器对空基类会多分配空间。
+ * 其实，我们只需要在定义新的iterator时，定义5个别名就符合STL对iterator的要求。
+ * iterator_category value_type difference_type pointer reference
+ * */
 #ifdef __STL_USE_NAMESPACES
 template <class _Category, class _Tp, class _Distance = ptrdiff_t,
           class _Pointer = _Tp*, class _Reference = _Tp&>
@@ -103,6 +124,10 @@ struct iterator {
 };
 #endif /* __STL_USE_NAMESPACES */
 
+/*
+ * itarator_traits的实现需要模板偏特化机制的支持
+ * 隶属concept： Default Constructible，Assignable
+ * */
 #ifdef __STL_CLASS_PARTIAL_SPECIALIZATION
 
 template <class _Iterator>
@@ -290,6 +315,19 @@ inline void distance(_InputIterator __first,
 
 #ifdef __STL_CLASS_PARTIAL_SPECIALIZATION
 
+/*
+ * 注意distance和advance函数的iterator的有效性需要客户程序保证
+ * 同时，注意以上这两个函数并没有针对output_iterator的版本，
+ * 因为对于output_iterator迭代器，光移动迭代器是不行的，必须要提领赋值之后才能移动迭代器
+ * */
+
+/*
+ * STL算法内部所用的一个itarator基本元素。
+ * 作用：寻找介于first与last之间的距离，也就是将first累加，直到等于last所需的次数。
+ * 该函数对[first, last)内的值没有要求。不会被提领。
+ * 从distance函数的实现中，我们可以看出iterator_tag的用途
+ * */
+
 template <class _InputIterator>
 inline typename iterator_traits<_InputIterator>::difference_type
 __distance(_InputIterator __first, _InputIterator __last, input_iterator_tag)
@@ -320,6 +358,9 @@ distance(_InputIterator __first, _InputIterator __last) {
 
 #endif /* __STL_CLASS_PARTIAL_SPECIALIZATION */
 
+/*
+ * 使迭代器移动n距离
+ * */
 template <class _InputIter, class _Distance>
 inline void __advance(_InputIter& __i, _Distance __n, input_iterator_tag) {
   while (__n--) ++__i;
